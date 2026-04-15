@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import './index.css'
 
-
+const API_URL =
+  import.meta.env.VITE_API_URL ||
+  'https://job-tracker-backend-qpdz.onrender.com'
 
 function App() {
   const [jobs, setJobs] = useState([])
@@ -9,12 +11,20 @@ function App() {
   const [position, setPosition] = useState('')
   const [status, setStatus] = useState('Applied')
   const [error, setError] = useState('')
-  const [filterStatus, setFilterStatus] = useState("All")
+  const [filterStatus, setFilterStatus] = useState('All')
 
   const loadJobs = () => {
-    fetch('http://localhost:3001/api/jobs')
-      .then((res) => res.json())
-      .then((data) => setJobs(data))
+    fetch(`${API_URL}/api/jobs`)
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error()
+        }
+        return res.json()
+      })
+      .then((data) => {
+        setJobs(data)
+        setError('')
+      })
       .catch(() => setError('Could not load jobs'))
   }
 
@@ -23,19 +33,30 @@ function App() {
   }, [])
 
   const handleSubmit = (e) => {
+    e.preventDefault()
+
     if (!company.trim() || !position.trim() || !status.trim()) {
-      setError("Please fill in all fields.")
+      setError('Please fill in all fields.')
       return
     }
 
     setError('')
 
-    fetch('http://localhost:3001/api/jobs', {
+    fetch(`${API_URL}/api/jobs`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ company, position, status }),
+      body: JSON.stringify({
+        company: company.trim(),
+        position: position.trim(),
+        status,
+      }),
     })
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error()
+        }
+        return res.json()
+      })
       .then(() => {
         setCompany('')
         setPosition('')
@@ -46,27 +67,37 @@ function App() {
   }
 
   const handleDelete = (id) => {
-    fetch(`http://localhost:3001/api/jobs/${id}`, {
+    fetch(`${API_URL}/api/jobs/${id}`, {
       method: 'DELETE',
     })
-      .then(() => loadJobs())
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error()
+        }
+        loadJobs()
+      })
       .catch(() => setError('Could not delete job'))
   }
 
   const handleStatusChange = (id, newStatus) => {
-    fetch(`http://localhost:3001/api/jobs/${id}`, {
+    fetch(`${API_URL}/api/jobs/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ status: newStatus }),
     })
-      .then(() => loadJobs())
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error()
+        }
+        loadJobs()
+      })
       .catch(() => setError('Could not update job'))
   }
 
   const filteredJobs =
-  filterStatus === "All"
-    ? jobs
-    : jobs.filter((job) => job.status === filterStatus)
+    filterStatus === 'All'
+      ? jobs
+      : jobs.filter((job) => job.status === filterStatus)
 
   return (
     <div className="container">
@@ -119,6 +150,7 @@ function App() {
           <option value="Rejected">Rejected</option>
         </select>
       </div>
+
       <h2>My Applications</h2>
 
       {filteredJobs.length === 0 ? (
